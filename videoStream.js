@@ -153,7 +153,7 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
   return socket.on('close', (code, message) => {   
     
     if(!this.wsServer.clients.size && !this.quit)
-      this.debug('%s: If no clients connects to the Websocket, the stream will be closed in 10s.', this.name);
+      this.debug('%s: If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.name);
     
     this.reload = setTimeout(() => {  //check if user just reload page
        
