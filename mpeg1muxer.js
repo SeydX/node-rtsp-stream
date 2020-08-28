@@ -9,6 +9,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.name = options.name;
   this.url = options.url;
   this.ffmpegOptions = options.ffmpegOptions;
+  this.wsPort = options.wsPort;
   this.exitCode = undefined;
   this.additionalFlags = [];
   if (this.ffmpegOptions) {
@@ -33,6 +34,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.stream = child_process.spawn(options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
+  this.debug('%s: Streaming started - Stream to ' + this.url + ' to http://localhost:' + this.wsPort + '/', this.name);
   this.inputStreamStarted = true;
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
