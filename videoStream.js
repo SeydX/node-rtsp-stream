@@ -13,6 +13,7 @@ const VideoStream = function(options, log, debug, api) {
   this.width = options.width;
   this.height = options.height;
   this.wsPort = options.wsPort;
+  this.reloadTimer = options.reloadTimer * 1000 | 30000;
   this.inputStreamStarted = false;
   this.stream = undefined;
   this.log = log;
@@ -163,7 +164,7 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
       
       this.reload = false;            
     
-    }, 10000); //wait 10s till close       
+    }, this.reloadTimer);     
     
     return this.debug(`${this.name}: Disconnected WebSocket (` + this.wsServer.clients.size + ' total)');
   });
