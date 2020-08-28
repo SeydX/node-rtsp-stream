@@ -122,7 +122,7 @@ VideoStream.prototype.pipeStreamToSocketServer = function() {
       if (client.readyState === 1) {
         results.push(client.send(data, opts));
       } else {
-        results.push(this.log('%s: Error: Client from remoteAddress ' + client.remoteAddress + ' not connected.', this.name));
+        results.push((this.name + ': Error: Client from remoteAddress ' + client.remoteAddress + ' not connected.'));
       }
     }
     return results;
