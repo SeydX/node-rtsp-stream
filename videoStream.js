@@ -14,7 +14,6 @@ const VideoStream = function(options, log, debug, api) {
   this.height = options.height;
   this.wsPort = options.wsPort;
   this.reloadTimer = options.reloadTimer * 1000 | 30000;
-  this.inputStreamStarted = false;
   this.stream = undefined;
   this.log = log;
   this.debug = debug;
@@ -35,15 +34,20 @@ VideoStream.prototype.stopAll = function() {
   this.log('%s: Closing streaming server..', this.name);
   this.quit = true;
   
-  this.wsServer.close();
-  this.stream.kill();
-  this.inputStreamStarted = false;
+  if(this.wsServer)
+    this.wsServer.close();
+  
+  if(this.stream)
+    this.stream.kill();
+
   return this;
 };
 
 VideoStream.prototype.stopStream = function() {
-  this.stream.kill();
-  this.inputStreamStarted = false;
+  
+  if(this.stream)
+    this.stream.kill();
+
   return this;
 };
 
@@ -51,6 +55,7 @@ VideoStream.prototype.startMpeg1Stream = function() {
   var gettingInputData, gettingOutputData, inputData, outputData;
   this.mpeg1Muxer = new Mpeg1Muxer({
     name: this.name,
+    wsPort: this.wsPort,
     ffmpegOptions: this.options.ffmpegOptions,
     url: this.streamUrl,
     ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath
@@ -58,9 +63,6 @@ VideoStream.prototype.startMpeg1Stream = function() {
   this.stream = this.mpeg1Muxer.stream;
   if (!this.mpeg1Muxer.inputStreamStarted) {
     return;
-  } else {
-    this.debug('%s: Streaming started - Stream to ' + this.options.streamUrl + ' to http://localhost:' + this.wsPort + '/', this.name);
-    this.inputStreamStarted = true;
   }
   this.mpeg1Muxer.on('mpeg1data', (data) => {
     return this.emit('camdata', data);
@@ -145,6 +147,9 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
   });
   this.debug(`${this.name}: New WebSocket Connection (` + this.wsServer.clients.size + ' total)');
   
+  if(this.wsServer.clients.size && (this.mpeg1Muxer && !this.mpeg1Muxer.inputStreamStarted) || !this.mpeg1Muxer)
+    this.startMpeg1Stream();
+
   if(this.reload)
     clearTimeout(this.reload);
 
@@ -157,10 +162,8 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
     
     this.reload = setTimeout(() => {  //check if user just reload page
        
-      if(!this.wsServer.clients.size){
+      if(!this.wsServer.clients.size)
         this.stopStream();
-        this.inputStreamStarted = false;
-      }
       
       this.reload = false;            
     
@@ -168,10 +171,6 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
     
     return this.debug(`${this.name}: Disconnected WebSocket (` + this.wsServer.clients.size + ' total)');
   });
-};
-
-VideoStream.prototype.streamRunning = function() {
-  return this.inputStreamStarted;
 };
 
 module.exports = VideoStream;
