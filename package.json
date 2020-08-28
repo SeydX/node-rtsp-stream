@@ -1,6 +1,6 @@
 {
-  "name": "node-rtsp-stream",
-  "version": "0.0.8",
+  "name": "@seydx/node-rtsp-stream",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,6 @@
     "mocha": "^5.2.0"
   },
   "dependencies": {
-    "ws": "^7.0.0"
+    "ws": "^7.3.1"
   }
 }
