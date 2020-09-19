@@ -11,6 +11,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.ffmpegOptions = options.ffmpegOptions;
   this.wsPort = options.wsPort;
   this.exitCode = undefined;
+  this.preArgs = options.preArgs || '';
   this.additionalFlags = [];
   if (this.ffmpegOptions) {
     for (key in this.ffmpegOptions) {
@@ -21,6 +22,7 @@ const Mpeg1Muxer = function(options, log, debug) {
     }
   }     
   this.spawnOptions = [
+    this.preArgs,
     '-i',
     this.url,
     '-f',
@@ -34,7 +36,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.stream = child_process.spawn(options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
-  this.debug('%s: Streaming started - Stream to ' + this.url + ' to http://localhost:' + this.wsPort + '/', this.name);
+  this.debug('%s: Streaming started - Stream from ' + this.url + ' to localhost:' + this.wsPort + '/', this.name);
   this.inputStreamStarted = true;
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
@@ -45,7 +47,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.stream.on('exit', (code, signal) => {
     this.inputStreamStarted = false;
     if (code === 1) {
-      this.debug('%s: RTSP stream exited with error', this.name);
+      this.log('%s: RTSP stream exited with error', this.name);
       this.exitCode = 1;
       return this.emit('exitWithError');
     } else {
