@@ -29,10 +29,10 @@ const Mpeg1Muxer = function(options, log, debug) {
     'mpegts',
     '-codec:v',
     'mpeg1video',
-    // additional ffmpeg options go here
     ...this.additionalFlags,
     '-'
   ];   
+  this.debug('%s: Stream command: %s %s', this.name, options.ffmpegPath, this.spawnOptions.toString().replace(/,/g, ' '));
   this.stream = child_process.spawn(options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
@@ -47,7 +47,7 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.stream.on('exit', (code, signal) => {
     this.inputStreamStarted = false;
     if (code === 1) {
-      this.log('%s: RTSP stream exited with error', this.name);
+      this.log('%s: RTSP stream exited with error! (%s)', this.name, signal);
       this.exitCode = 1;
       return this.emit('exitWithError');
     } else {
