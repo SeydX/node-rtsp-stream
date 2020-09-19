@@ -1,6 +1,7 @@
 const ws = require('ws');
 const util = require('util');
 const events = require('events');
+const https = require('https');
 
 const Mpeg1Muxer = require('./mpeg1muxer');  
 
@@ -18,6 +19,8 @@ const VideoStream = function(options, log, debug, api) {
   this.log = log;
   this.debug = debug;
   
+  this.ssl = options.ssl;
+  
   this.quit = false;
   
   api.on('shutdown', () => {
@@ -31,7 +34,7 @@ util.inherits(VideoStream, events.EventEmitter);
 
 VideoStream.prototype.stopAll = function() {
   
-  this.log('%s: Closing streaming server..', this.name);
+  this.debug('%s: Closing streaming server..', this.name);
   this.quit = true;
   
   if(this.wsServer)
@@ -58,7 +61,8 @@ VideoStream.prototype.startMpeg1Stream = function() {
     wsPort: this.wsPort,
     ffmpegOptions: this.options.ffmpegOptions,
     url: this.streamUrl,
-    ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath
+    ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath,
+    ssl: this.ssl
   }, this.log, this.debug);
   this.stream = this.mpeg1Muxer.stream;
   if (!this.mpeg1Muxer.inputStreamStarted) {
@@ -108,11 +112,29 @@ VideoStream.prototype.startMpeg1Stream = function() {
 };
 
 VideoStream.prototype.pipeStreamToSocketServer = function() {
-  this.wsServer = new ws.Server({
-    port: this.wsPort
-  });
   
-  this.debug('%s Awaiting WebSocket connections on ws://localhost:' + this.wsPort + '/', this.name);
+  if(this.ssl){
+  
+    const server = https.createServer({
+      cert: this.ssl.cert,
+      key: this.ssl.key
+    });
+  
+    this.wsServer = new ws.Server({ server });
+    
+    server.listen(this.wsPort);
+    
+    this.log('%s Awaiting WebSocket connections on wss://localhost:' + this.wsPort + '/', this.name);
+  
+  } else {
+  
+    this.wsServer = new ws.Server({
+      port: this.wsPort
+    });
+    
+    this.log('%s Awaiting WebSocket connections on ws://localhost:' + this.wsPort + '/', this.name);
+  
+  }
   
   this.wsServer.on('connection', (socket, request) => {
     return this.onSocketConnect(socket, request);
