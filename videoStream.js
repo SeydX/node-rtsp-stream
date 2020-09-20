@@ -60,7 +60,6 @@ VideoStream.prototype.startMpeg1Stream = function() {
     name: this.name,
     wsPort: this.wsPort,
     ffmpegOptions: this.options.ffmpegOptions,
-    preArgs: this.options.preArgs,
     url: this.streamUrl,
     ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath,
     ssl: this.ssl
