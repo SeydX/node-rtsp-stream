@@ -11,7 +11,6 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.ffmpegOptions = options.ffmpegOptions;
   this.wsPort = options.wsPort;
   this.exitCode = undefined;
-  this.preArgs = options.preArgs || '';
   this.additionalFlags = [];
   if (this.ffmpegOptions) {
     for (key in this.ffmpegOptions) {
@@ -22,7 +21,6 @@ const Mpeg1Muxer = function(options, log, debug) {
     }
   }     
   this.spawnOptions = [
-    this.preArgs,
     '-i',
     this.url,
     '-f',
