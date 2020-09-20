@@ -23,10 +23,6 @@ const VideoStream = function(options, log, debug, api) {
   
   this.quit = false;
   
-  api.on('shutdown', () => {
-    this.stopAll();
-  });
-  
   return this;
 };
 
