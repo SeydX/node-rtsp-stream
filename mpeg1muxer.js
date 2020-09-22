@@ -8,6 +8,8 @@ const Mpeg1Muxer = function(options, log, debug) {
   this.debug = debug;
   this.name = options.name;
   this.url = options.url;
+  this.width = options.width;
+  this.height = options.height;
   this.ffmpegOptions = options.ffmpegOptions;
   this.wsPort = options.wsPort;
   this.exitCode = undefined;
@@ -21,7 +23,6 @@ const Mpeg1Muxer = function(options, log, debug) {
     }
   }     
   this.spawnOptions = [
-    '-i',
     this.url,
     '-f',
     'mpegts',
@@ -29,7 +30,8 @@ const Mpeg1Muxer = function(options, log, debug) {
     'mpeg1video',
     ...this.additionalFlags,
     '-'
-  ];   
+  ].flat();
+  
   this.debug('%s: Stream command: %s %s', this.name, options.ffmpegPath, this.spawnOptions.toString().replace(/,/g, ' '));
   this.stream = child_process.spawn(options.ffmpegPath, this.spawnOptions, {
     detached: false
