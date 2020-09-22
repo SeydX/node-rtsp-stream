@@ -40,6 +40,7 @@ VideoStream.prototype.stopAll = function() {
     this.stream.kill();
 
   return this;
+
 };
 
 VideoStream.prototype.stopStream = function() {
@@ -48,6 +49,7 @@ VideoStream.prototype.stopStream = function() {
     this.stream.kill();
 
   return this;
+
 };
 
 VideoStream.prototype.startMpeg1Stream = function() {
@@ -55,6 +57,8 @@ VideoStream.prototype.startMpeg1Stream = function() {
   this.mpeg1Muxer = new Mpeg1Muxer({
     name: this.name,
     wsPort: this.wsPort,
+    width: this.width,
+    height: this.height,
     ffmpegOptions: this.options.ffmpegOptions,
     url: this.streamUrl,
     ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath,
