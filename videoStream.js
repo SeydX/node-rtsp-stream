@@ -115,23 +115,22 @@ VideoStream.prototype.startMpeg1Stream = function() {
 
 VideoStream.prototype.pipeStreamToSocketServer = function() {
   
-  if(this.ssl){
-  
+  if(this.ssl){ 
+    
     const server = https.createServer({
       cert: this.ssl.cert,
       key: this.ssl.key
-    });
-  
-    this.wsServer = new ws.Server({ server });
-    
-    server.listen(this.wsPort);
+    }).listen(this.wsPort);
+        
+    this.wsServer = new ws.Server({ server: server, perMessageDeflate:false });
     
     this.log('%s Awaiting WebSocket connections on wss://localhost:' + this.wsPort + '/', this.name);
   
-  } else {
+  } else {    
   
     this.wsServer = new ws.Server({
-      port: this.wsPort
+      port: this.wsPort,
+      perMessageDeflate:false 
     });
     
     this.log('%s Awaiting WebSocket connections on ws://localhost:' + this.wsPort + '/', this.name);
