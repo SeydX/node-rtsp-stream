@@ -29,9 +29,11 @@ const VideoStream = function(options, log, debug, api) {
 util.inherits(VideoStream, events.EventEmitter);
 
 VideoStream.prototype.stopAll = function() {
-  
-  this.debug('%s: Closing streaming server..', this.name);
+
   this.quit = true;
+  
+  if(this.wsServer || this.stream)
+    this.debug('%s: Closing streaming server..', this.name);
   
   if(this.wsServer)
     this.wsServer.close();
