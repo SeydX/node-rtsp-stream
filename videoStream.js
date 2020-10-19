@@ -16,7 +16,7 @@ const VideoStream = function(options) {
   this.width = options.width;
   this.height = options.height;
   this.wsPort = options.wsPort;
-  this.reloadTimer = options.reloadTimer * 1000 | 30000;
+  this.reloadTimer = options.reloadTimer * 1000 || 30000;
   this.stream = undefined;
   
   this.ssl = options.ssl;
