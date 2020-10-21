@@ -1,5 +1,3 @@
-const debug = require('debug')('CameraUIStream');
-
 const ws = require('ws');
 const util = require('util');
 const events = require('events');
@@ -9,7 +7,7 @@ const Mpeg1Muxer = require('./mpeg1muxer');
 
 const STREAM_MAGIC_BYTES = 'jsmp'; // Must be 4 bytes   
 
-const VideoStream = function(options) {
+const VideoStream = function(options, Logger) {
   this.options = options;
   this.name = options.name;
   this.streamUrl = options.streamUrl;
@@ -18,11 +16,9 @@ const VideoStream = function(options) {
   this.wsPort = options.wsPort;
   this.reloadTimer = options.reloadTimer * 1000 || 30000;
   this.stream = undefined;
-  
+  this.Logger = Logger;
   this.ssl = options.ssl;
-  
   this.quit = false;
-  
   return this;
 };
 
@@ -33,7 +29,7 @@ VideoStream.prototype.stopAll = function() {
   this.quit = true;
   
   if(this.wsServer || this.stream)
-    debug('%s: Closing streaming server..', this.name);
+    this.Logger.ui.debug('Closing streaming server..', this.name);
   
   if(this.wsServer)
     this.wsServer.close();
@@ -65,7 +61,7 @@ VideoStream.prototype.startMpeg1Stream = function() {
     url: this.streamUrl,
     ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath,
     ssl: this.ssl
-  });
+  }, this.Logger);
   this.stream = this.mpeg1Muxer.stream;
   if (!this.mpeg1Muxer.inputStreamStarted) {
     return;
@@ -124,7 +120,7 @@ VideoStream.prototype.pipeStreamToSocketServer = function() {
         
     this.wsServer = new ws.Server({ server: server, perMessageDeflate:false });
     
-    debug('%s Awaiting WebSocket connections on wss://localhost:' + this.wsPort + '/', this.name);
+    this.Logger.ui.debug('Awaiting WebSocket connections on wss://localhost:' + this.wsPort + '/', this.name);
   
   } else {    
   
@@ -133,7 +129,7 @@ VideoStream.prototype.pipeStreamToSocketServer = function() {
       perMessageDeflate:false 
     });
     
-    debug('%s Awaiting WebSocket connections on ws://localhost:' + this.wsPort + '/', this.name);
+    this.Logger.ui.debug('Awaiting WebSocket connections on ws://localhost:' + this.wsPort + '/', this.name);
   
   }
   
@@ -168,7 +164,7 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
   socket.send(streamHeader, {
     binary: true
   });
-  debug(`${this.name}: New WebSocket Connection (` + this.wsServer.clients.size + ' total)');
+  this.Logger.ui.debug(`${this.name}: New WebSocket Connection (` + this.wsServer.clients.size + ' total)');
   
   if(this.wsServer.clients.size && (this.mpeg1Muxer && !this.mpeg1Muxer.inputStreamStarted) || !this.mpeg1Muxer)
     this.startMpeg1Stream();
@@ -181,7 +177,7 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
   return socket.on('close', (code, message) => {   
     
     if(!this.wsServer.clients.size && !this.quit)
-      debug('%s: If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.name);
+      this.Logger.ui.debug('If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.name);
     
     this.reload = setTimeout(() => {  //check if user just reload page
        
@@ -192,7 +188,7 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
     
     }, this.reloadTimer);     
     
-    return debug(`${this.name}: Disconnected WebSocket (` + this.wsServer.clients.size + ' total)');
+    return this.Logger.ui.debug(`${this.name}: Disconnected WebSocket (` + this.wsServer.clients.size + ' total)');
   });
 };
 
