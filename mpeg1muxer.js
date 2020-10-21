@@ -1,10 +1,8 @@
-const debug = require('debug')('CameraUIStream');
-
 const child_process = require('child_process');
 const util = require('util');
 const events = require('events');   
 
-const Mpeg1Muxer = function(options) {
+const Mpeg1Muxer = function(options, Logger) {
   var key;
   this.name = options.name;
   this.url = options.url;
@@ -14,6 +12,7 @@ const Mpeg1Muxer = function(options) {
   this.wsPort = options.wsPort;
   this.exitCode = undefined;
   this.additionalFlags = [];
+  this.Logger = Logger;
   if (this.ffmpegOptions) {
     for (key in this.ffmpegOptions) {
       this.additionalFlags.push(key);
@@ -32,11 +31,11 @@ const Mpeg1Muxer = function(options) {
     '-'
   ].flat();
   
-  debug('%s: Stream command: %s %s', this.name, options.ffmpegPath, this.spawnOptions.toString().replace(/,/g, ' '));
+  this.Logger.ui.debug('Stream command: ' + options.ffmpegPath + ' ' + this.spawnOptions.toString().replace(/,/g, ' '), this.name);
   this.stream = child_process.spawn(options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
-  debug('%s: Streaming started - Stream from ' + this.url + ' to localhost:' + this.wsPort + '/', this.name);
+  this.Logger.ui.debug('Streaming started - Stream from ' + this.url, this.name);
   this.inputStreamStarted = true;
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
@@ -47,11 +46,11 @@ const Mpeg1Muxer = function(options) {
   this.stream.on('exit', (code, signal) => {
     this.inputStreamStarted = false;
     if (code === 1) {
-      debug('%s: RTSP stream exited with error! (%s)', this.name, signal);
+      this.Logger.ui.error('RTSP stream exited with error! (' + signal + ')', this.name);
       this.exitCode = 1;
       return this.emit('exitWithError');
     } else {
-      debug('%s: Stream Exit (' + (code ? code : signal) + ')', this.name);
+      this.Logger.ui.debug('Stream Exit (' + (code ? code : signal) + ')', this.name);
     }
   }); 
   return this;
