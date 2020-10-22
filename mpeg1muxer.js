@@ -2,7 +2,7 @@ const child_process = require('child_process');
 const util = require('util');
 const events = require('events');   
 
-const Mpeg1Muxer = function(options, Logger) {
+const Mpeg1Muxer = function(options, Logger, streamSessions) {
   var key;
   this.name = options.name;
   this.url = options.url;
@@ -13,6 +13,7 @@ const Mpeg1Muxer = function(options, Logger) {
   this.exitCode = undefined;
   this.additionalFlags = [];
   this.Logger = Logger;
+  this.streamSessions = streamSessions;
   if (this.ffmpegOptions) {
     for (key in this.ffmpegOptions) {
       this.additionalFlags.push(key);
@@ -45,6 +46,7 @@ const Mpeg1Muxer = function(options, Logger) {
   });
   this.stream.on('exit', (code, signal) => {
     this.inputStreamStarted = false;
+    this.streamSessions.closeSession(this.name);
     if (code === 1) {
       this.Logger.ui.error('RTSP stream exited with error! (' + signal + ')', this.name);
       this.exitCode = 1;
