@@ -7,7 +7,7 @@ const Mpeg1Muxer = require('./mpeg1muxer');
 
 const STREAM_MAGIC_BYTES = 'jsmp'; // Must be 4 bytes   
 
-const VideoStream = function(options, Logger) {
+const VideoStream = function(options, Logger, streamSessions) {
   this.options = options;
   this.name = options.name;
   this.streamUrl = options.streamUrl;
@@ -19,6 +19,9 @@ const VideoStream = function(options, Logger) {
   this.Logger = Logger;
   this.ssl = options.ssl;
   this.quit = false;
+  
+  this.streamSessions = streamSessions;
+  
   return this;
 };
 
@@ -61,7 +64,7 @@ VideoStream.prototype.startMpeg1Stream = function() {
     url: this.streamUrl,
     ffmpegPath: this.options.ffmpegPath == undefined ? 'ffmpeg' : this.options.ffmpegPath,
     ssl: this.ssl
-  }, this.Logger);
+  }, this.Logger, this.streamSessions);
   this.stream = this.mpeg1Muxer.stream;
   if (!this.mpeg1Muxer.inputStreamStarted) {
     return;
@@ -154,7 +157,7 @@ VideoStream.prototype.pipeStreamToSocketServer = function() {
 };
 
 VideoStream.prototype.onSocketConnect = function(socket, request) {
-  var streamHeader;
+  var streamHeader, allowStream;
   // Send magic bytes and video size to the newly connected socket
   // struct { char magic[4]; unsigned short width, height;}
   streamHeader = new Buffer(8);
@@ -166,8 +169,11 @@ VideoStream.prototype.onSocketConnect = function(socket, request) {
   });
   this.Logger.ui.debug(`${this.name}: New WebSocket Connection (` + this.wsServer.clients.size + ' total)');
   
-  if(this.wsServer.clients.size && (this.mpeg1Muxer && !this.mpeg1Muxer.inputStreamStarted) || !this.mpeg1Muxer)
-    this.startMpeg1Stream();
+  if(this.wsServer.clients.size && (this.mpeg1Muxer && !this.mpeg1Muxer.inputStreamStarted) || !this.mpeg1Muxer){
+    allowStream = this.streamSessions.requestSession(this.name);
+    if(allowStream)
+      this.startMpeg1Stream();
+  }
 
   if(this.reload)
     clearTimeout(this.reload);
