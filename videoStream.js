@@ -189,8 +189,6 @@ VideoStream.prototype = {
     
     this.mpeg1Muxer = new Mpeg1Muxer(mpegOptions, this.Logger, this.streamSessions);
     
-    this.stream = this.mpeg1Muxer.stream;
-    
     this.mpeg1Muxer.on('mpeg1data', (data) => {
       return this.onBroadcast(data);
     });
@@ -256,8 +254,10 @@ VideoStream.prototype = {
   
   stopStream: function(){
   
-    if(this.mpeg1Muxer && this.mpeg1Muxer.stream)
+    if(this.mpeg1Muxer && this.mpeg1Muxer.stream){
+      this.Logger.ui.debug('Stopping stream..', this.cameraName);
       this.mpeg1Muxer.stream.kill();
+    }
       
     return;
 
@@ -265,8 +265,7 @@ VideoStream.prototype = {
   
   destroy: function(){
 
-    if(this.WebSocket || this.mpeg1Muxer)
-      this.Logger.ui.debug('Closing streaming server..', this.cameraName);
+    this.Logger.ui.debug('Closing streaming server..', this.cameraName);
     
     if(this.WebSocket)
       this.WebSocket.close();
