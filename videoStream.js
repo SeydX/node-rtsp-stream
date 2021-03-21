@@ -2,8 +2,8 @@
 
 const events = require('events');
 const https = require('https');
-const ws = require('ws');
 const util = require('util');
+const ws = require('ws');
 
 const Mpeg1Muxer = require('./mpeg1muxer');  
 
@@ -27,12 +27,18 @@ util.inherits(VideoStream, events.EventEmitter);
 
 VideoStream.prototype = {
 
-  ping: function(socket){},
+  ping: function(){},  
   
-  heartbeat: function(socket, request){
+  heartbeat: function(socket, msg){ 
   
-    this.Logger.ui.debug('heartbeat', this.cameraName + ' (' + socket.remoteAddress + ')');
-    socket.isAlive = true;
+    if(msg && msg === '--heartbeat--'){ //from client    
+      //this.Logger.ui.debug('received heartbeat from client', this.cameraName + ' (' + socket.remoteAddress + ')');
+      socket.send('--ping--');
+    } else {
+      this.Logger.ui.debug('WebSocket: received heartbeat from socket ' + socket.remoteAddress, this.cameraName);
+    }  
+    
+    socket.isAlive = true;            
   
   },
   
@@ -47,7 +53,7 @@ VideoStream.prototype = {
           
       this.WebSocket = new ws.Server({ server: server, perMessageDeflate:false });
       
-      this.Logger.ui.debug('Awaiting WebSocket connections on wss://localhost:' + this.options.wsPort + '/', this.cameraName);
+      this.Logger.ui.debug('WebSocket: Awaiting WebSocket connections on wss://localhost:' + this.options.wsPort + '/', this.cameraName);
     
     } else {    
     
@@ -56,7 +62,7 @@ VideoStream.prototype = {
         perMessageDeflate:false 
       });
       
-      this.Logger.ui.debug('Awaiting WebSocket connections on ws://localhost:' + this.options.wsPort + '/', this.cameraName);
+      this.Logger.ui.debug('WebSocket: Awaiting WebSocket connections on ws://localhost:' + this.options.wsPort + '/', this.cameraName);
     
     }
     
@@ -67,13 +73,16 @@ VideoStream.prototype = {
   
     this.pingInterval = setInterval(() => {
     
+      if(this.WebSocket.clients.size)
+        this.Logger.ui.debug('WebSocket: Pinging sockets..', this.cameraName);
+    
       this.WebSocket.clients.forEach(socket => {
         
         if (socket.isAlive === false)
           return socket.terminate();
         
         socket.isAlive = false;
-        socket.ping(this.ping.bind(this, socket));
+        socket.ping(this.ping.bind(this));
       
       });
     
@@ -98,11 +107,12 @@ VideoStream.prototype = {
       binary: true
     });
     
-    socket.isAlive = true;
+    socket.isAlive = true; 
     socket.remoteAddress = request.connection.remoteAddress;
-    socket.on('pong', this.heartbeat.bind(this, socket, request));
+    socket.on('pong', this.heartbeat.bind(this, socket));
+    socket.on('message', this.heartbeat.bind(this, socket));
     
-    this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): New WebSocket connection (' + this.WebSocket.clients.size + ' total)');
+    this.Logger.ui.debug('WebSocket: New WebSocket connection from ' + socket.remoteAddress + ' (' + this.WebSocket.clients.size + ' total)', this.cameraName);
       
     if(this.streamTimeout){
       clearTimeout(this.streamTimeout);
@@ -120,13 +130,11 @@ VideoStream.prototype = {
     
     socket.on('close', () => {
       
-      this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): Disconnected WebSocket (' + this.WebSocket.clients.size + ' total)'); 
-      
-      clearInterval(socket.pingInterval);
+      this.Logger.ui.debug('WebSocket: ' + socket.remoteAddress + ' disconnected or closed from WebSocket (' + this.WebSocket.clients.size + ' total)', this.cameraName);
       
       if(!this.WebSocket.clients.size){
       
-        this.Logger.ui.debug('If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.cameraName);
+        this.Logger.ui.debug('WebSocket: If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.cameraName);
         
         this.streamTimeout = setTimeout(() => {  //check if user just reload page
            
@@ -153,7 +161,7 @@ VideoStream.prototype = {
       if (client.readyState === 1) {
         results.push(client.send(data, opts));
       } else {
-        results.push((this.cameraName + ': Error: Client from remoteAddress ' + client.remoteAddress + ' not connected.'));
+        results.push((this.cameraName + ': WebSocket: Error: Client from remoteAddress ' + client.remoteAddress + ' not connected.'));
       }
     }
     
@@ -164,10 +172,10 @@ VideoStream.prototype = {
   startStream: function(){
   
     let gettingInputData = false;
-    let gettingOutputData = false;
+    //let gettingOutputData = false;
     
     const inputData = [];
-    const outputData = [];
+    //const outputData = [];
     
     const mpegOptions = {
       name: this.cameraName,
@@ -198,12 +206,12 @@ VideoStream.prototype = {
       
       if(data.indexOf('Output #') !== -1){
         gettingInputData = false;
-        gettingOutputData = true;
+        //gettingOutputData = true;
       }
       
-      if(data.indexOf('frame') === 0){
+      /*if(data.indexOf('frame') === 0){
         gettingOutputData = false;
-      }
+      }*/
       
       if(gettingInputData){
         
@@ -231,11 +239,6 @@ VideoStream.prototype = {
     
     });
     
-    this.mpeg1Muxer.on('ffmpegStderr', function(data) {
-      this.Logger.ui.error(data);
-      return;
-    });
-    
     this.mpeg1Muxer.on('streamExit', () => {
       this.mpeg1Muxer = false;
       this.streamSessions.closeSession(this.cameraName);
@@ -249,7 +252,7 @@ VideoStream.prototype = {
   stopStream: function(){
   
     if(this.mpeg1Muxer && this.mpeg1Muxer.stream){
-      this.Logger.ui.debug('Stopping stream..', this.cameraName);
+      this.Logger.ui.debug('WebSocket: Closing Stream..', this.cameraName);
       this.mpeg1Muxer.stream.kill();
     }
       
@@ -259,7 +262,7 @@ VideoStream.prototype = {
   
   destroy: function(){
 
-    this.Logger.ui.debug('Closing streaming server..', this.cameraName);
+    this.Logger.ui.debug('WebSocket: Closing WebSocket and Stream..', this.cameraName);
     
     if(this.WebSocket)
       this.WebSocket.close();
