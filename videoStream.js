@@ -17,7 +17,7 @@ const VideoStream = function(options, Logger, streamSessions) {
   this.cameraName = options.name;
   this.reloadTimer = options.reloadTimer * 1000 || 30000;
 
-  this.streamSessions = streamSessions;
+  this.streamSessions = streamSessions; 
   
   return this;
 
@@ -27,21 +27,17 @@ util.inherits(VideoStream, events.EventEmitter);
 
 VideoStream.prototype = {
 
-  ping: function(ws){
+  ping: function(socket){},
   
-    this.Logger.ui.debug('Ping.', this.cameraName + ' (' + ws.remoteAddress + ')');
+  heartbeat: function(socket, request){
   
-  },
-  
-  heartbeat: function(request){
-  
-    this.Logger.ui.debug('Pong.', this.cameraName + ' (' + request.socket.remoteAddress + ')');
-    this.isAlive = true;
+    this.Logger.ui.debug('heartbeat', this.cameraName + ' (' + socket.remoteAddress + ')');
+    socket.isAlive = true;
   
   },
   
   pipeStreamToServer: function(){
-    
+                                                         
     if(this.options.ssl){ 
       
       const server = https.createServer({
@@ -71,13 +67,13 @@ VideoStream.prototype = {
   
     this.pingInterval = setInterval(() => {
     
-      this.WebSocket.clients.forEach(ws => {
+      this.WebSocket.clients.forEach(socket => {
         
-        if (ws.isAlive === false)
-          return ws.terminate();
+        if (socket.isAlive === false)
+          return socket.terminate();
         
-        ws.isAlive = false;
-        ws.ping(this.ping.bind(this, ws));
+        socket.isAlive = false;
+        socket.ping(this.ping.bind(this, socket));
       
       });
     
@@ -104,7 +100,7 @@ VideoStream.prototype = {
     
     socket.isAlive = true;
     socket.remoteAddress = request.connection.remoteAddress;
-    socket.on('pong', this.heartbeat.bind(this, request));
+    socket.on('pong', this.heartbeat.bind(this, socket, request));
     
     this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): New WebSocket connection (' + this.WebSocket.clients.size + ' total)');
       
@@ -125,6 +121,8 @@ VideoStream.prototype = {
     socket.on('close', () => {
       
       this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): Disconnected WebSocket (' + this.WebSocket.clients.size + ' total)'); 
+      
+      clearInterval(socket.pingInterval);
       
       if(!this.WebSocket.clients.size){
       
