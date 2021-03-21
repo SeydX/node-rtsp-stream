@@ -68,6 +68,21 @@ VideoStream.prototype = {
       return this.onConnection(socket, request);
     });
     
+  
+    this.pingInterval = setInterval(() => {
+    
+      this.WebSocket.clients.forEach(ws => {
+        
+        if (ws.isAlive === false)
+          return ws.terminate();
+        
+        ws.isAlive = false;
+        ws.ping(this.ping.bind(this, ws));
+      
+      });
+    
+    }, 60000);
+    
     return;
   
   },
@@ -93,24 +108,10 @@ VideoStream.prototype = {
     
     this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): New WebSocket connection (' + this.WebSocket.clients.size + ' total)');
       
-    if(this.pageReload){
-      clearTimeout(this.pageReload);
-      this.pageReload = null;
+    if(this.streamTimeout){
+      clearTimeout(this.streamTimeout);
+      this.streamTimeout = null;
     }
-      
-    this.pingInterval = setInterval(() => {
-    
-      this.WebSocket.clients.forEach(ws => {
-        
-        if (ws.isAlive === false)
-          return ws.terminate();
-        
-        ws.isAlive = false;
-        ws.ping(this.ping.bind(this, ws));
-      
-      });
-    
-    }, 60000);
   
     if(this.WebSocket.clients.size && !this.mpeg1Muxer){
       
@@ -125,21 +126,16 @@ VideoStream.prototype = {
       
       this.Logger.ui.debug(this.cameraName + ' (' + socket.remoteAddress + '): Disconnected WebSocket (' + this.WebSocket.clients.size + ' total)'); 
       
-      if(this.pingInterval){
-        clearInterval(this.pingInterval);   
-        this.pingInterval = null;
-      }
-      
       if(!this.WebSocket.clients.size){
       
         this.Logger.ui.debug('If no clients connects to the Websocket, the stream will be closed in ' + this.reloadTimer/1000 + 's', this.cameraName);
         
-        this.reload = setTimeout(() => {  //check if user just reload page
+        this.streamTimeout = setTimeout(() => {  //check if user just reload page
            
           if(!this.WebSocket.clients.size)
             this.stopStream();
           
-          this.reload = null;            
+          this.streamTimeout = null;            
         
         }, this.reloadTimer);
       
