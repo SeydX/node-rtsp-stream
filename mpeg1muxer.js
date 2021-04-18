@@ -5,9 +5,9 @@ const events = require('events');
 const readline = require('readline');  
 const util = require('util');
 
-const Mpeg1Muxer = function(options, Logger, streamSessions) {
+const Mpeg1Muxer = function(options, logger, streamSessions) {
   
-  this.Logger = Logger;
+  this.logger = logger;
   this.options = options;
   this.cameraName = options.name;
   this.streamSessions = streamSessions;
@@ -31,13 +31,13 @@ const Mpeg1Muxer = function(options, Logger, streamSessions) {
     '-'
   ];
   
-  this.Logger.ui.debug('Stream command: ' + this.options.ffmpegPath + ' ' + this.spawnOptions.toString().replace(/,/g, ' '), this.cameraName);
+  this.logger.debug(`Stream command: ${this.options.ffmpegPath} ${this.spawnOptions.toString().replace(/,/g, ' ')}`, this.cameraName, true);
   
   this.stream = child_process.spawn(this.options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
   
-  this.Logger.ui.debug('Streaming started - Stream from ' + this.options.url[this.options.url.length-1], this.cameraName);
+  this.logger.debug(`Streaming started - Stream from ${this.options.url[this.options.url.length-1]}`, this.cameraName, true);
   
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
@@ -54,18 +54,18 @@ const Mpeg1Muxer = function(options, Logger, streamSessions) {
   
   stderr.on('line', line => {
     if (line.match(/\[(panic|fatal|error)\]/)) {
-      this.Logger.ui.error(line, this.cameraName);
+      this.logger.error(line, this.cameraName, true);
     } else {
-      this.Logger.ui.debug(line, this.cameraName);
+      this.logger.debug(line, this.cameraName, true);
     }
   });
   
   this.stream.on('exit', (code, signal) => {
   
     if (code === 1) {
-      this.Logger.ui.error('RTSP stream exited with error! (' + signal + ')', this.cameraName);
+      this.logger.error(`RTSP stream exited with error! (${signal})`, this.cameraName, true);
     } else {
-      this.Logger.ui.debug('Stream Exit (expected)', this.cameraName);
+      this.logger.debug(`Stream Exit (expected)`, this.cameraName, true);
     }
   
     return this.emit('streamExit', {
