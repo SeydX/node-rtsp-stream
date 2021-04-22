@@ -35,7 +35,7 @@ VideoStream.prototype = {
       //this.logger.debug('received heartbeat from client', this.cameraName + ' (' + socket.remoteAddress + ')');
       socket.send('--ping--');
     } else {
-      this.logger.debug(`WebSocket: received heartbeat from socket ${socket.remoteAddress}`, this.cameraName, true);
+      this.logger.debug(`WebSocket: received heartbeat from socket ${socket.remoteAddress}`, this.cameraName, '[Streams]');
     }  
     
     socket.isAlive = true;            
@@ -52,8 +52,6 @@ VideoStream.prototype = {
       }).listen(this.options.wsPort);
           
       this.WebSocket = new ws.Server({ server: server, perMessageDeflate:false });
-      
-      this.logger.debug(`WebSocket: Awaiting WebSocket connections on wss://localhost:${this.options.wsPort}`, this.cameraName, true);
     
     } else {    
     
@@ -61,9 +59,7 @@ VideoStream.prototype = {
         port: this.options.wsPort,
         perMessageDeflate:false 
       });
-      
-      this.logger.debug(`WebSocket: Awaiting WebSocket connections on ws://localhost:${this.options.wsPort}`, this.cameraName, true);
-    
+
     }
 
     this.WebSocket.on('error', (error) => {
@@ -88,7 +84,11 @@ VideoStream.prototype = {
           err = error;
       }
 
-      this.logger.error(err, false,true);
+      this.logger.error(err, this.cameraName, '[Streams]');
+    });
+    
+    this.WebSocket.on('listening', () => {
+      this.logger.debug(`Awaiting WebSocket connections on ${this.options.ssl ? 'wss' : 'ws'}://localhost:${this.options.wsPort}`, this.cameraName, '[Streams]');
     });
     
     this.WebSocket.on('connection', (socket, request) => {
@@ -98,7 +98,7 @@ VideoStream.prototype = {
     this.pingInterval = setInterval(() => {
     
       if(this.WebSocket.clients.size)
-        this.logger.debug(`WebSocket: Pinging sockets..`, this.cameraName, true);
+        this.logger.debug(`Pinging sockets..`, this.cameraName, '[Streams]');
     
       this.WebSocket.clients.forEach(socket => {
         
@@ -136,7 +136,7 @@ VideoStream.prototype = {
     socket.on('pong', this.heartbeat.bind(this, socket));
     socket.on('message', this.heartbeat.bind(this, socket));
     
-    this.logger.debug(`WebSocket: New WebSocket connection from ${socket.remoteAddress} (${this.WebSocket.clients.size} total)`, this.cameraName, true);
+    this.logger.debug(`New WebSocket connection from ${socket.remoteAddress} (${this.WebSocket.clients.size} total)`, this.cameraName, '[Streams]');
       
     if(this.streamTimeout){
       clearTimeout(this.streamTimeout);
@@ -154,11 +154,11 @@ VideoStream.prototype = {
     
     socket.on('close', () => {
       
-      this.logger.debug(`WebSocket: ${socket.remoteAddress} disconnected or closed from WebSocket (${this.WebSocket.clients.size} total)`, this.cameraName, true);
+      this.logger.debug(`${socket.remoteAddress} disconnected or closed from WebSocket (${this.WebSocket.clients.size} total)`, this.cameraName, '[Streams]');
       
       if(!this.WebSocket.clients.size){
       
-        this.logger.debug(`WebSocket: If no clients connects to the Websocket, the stream will be closed in ${this.reloadTimer/1000}s`, this.cameraName, true);
+        this.logger.debug(`If no clients connects to the Websocket, the stream will be closed in ${this.reloadTimer/1000}s`, this.cameraName, '[Streams]');
         
         this.streamTimeout = setTimeout(() => {  //check if user just reload page
            
@@ -185,7 +185,7 @@ VideoStream.prototype = {
       if (client.readyState === 1) {
         results.push(client.send(data, opts));
       } else {
-        results.push((`${this.cameraName}: WebSocket: Error: Client from remoteAddress ${client.remoteAddress} not connected.`));
+        results.push((`${this.cameraName}: Error: Client from remoteAddress ${client.remoteAddress} not connected.`));
       }
     }
     
@@ -276,7 +276,7 @@ VideoStream.prototype = {
   stopStream: function(){
   
     if(this.mpeg1Muxer && this.mpeg1Muxer.stream){
-      this.logger.debug('WebSocket: Closing Stream..', this.cameraName, true);
+      this.logger.debug('Closing Stream..', this.cameraName, '[Streams]');
       this.mpeg1Muxer.stream.kill();
     }
       
@@ -286,7 +286,7 @@ VideoStream.prototype = {
   
   destroy: function(){
 
-    this.logger.debug(`WebSocket: Closing WebSocket and Stream..`, this.cameraName, true);
+    this.logger.debug(`Closing WebSocket and Stream..`, this.cameraName, '[Streams]');
     
     if(this.WebSocket)
       this.WebSocket.close();
