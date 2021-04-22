@@ -31,13 +31,13 @@ const Mpeg1Muxer = function(options, logger, streamSessions) {
     '-'
   ];
   
-  this.logger.debug(`Stream command: ${this.options.ffmpegPath} ${this.spawnOptions.toString().replace(/,/g, ' ')}`, this.cameraName, true);
+  this.logger.debug(`Stream command: ${this.options.ffmpegPath} ${this.spawnOptions.toString().replace(/,/g, ' ')}`, this.cameraName, '[Streams]');
   
   this.stream = child_process.spawn(this.options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
   
-  this.logger.debug(`Streaming started - Stream from ${this.options.url[this.options.url.length-1]}`, this.cameraName, true);
+  this.logger.debug(`Streaming started - Stream from ${this.options.url[this.options.url.length-1]}`, this.cameraName, '[Streams]');
   
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
@@ -54,18 +54,18 @@ const Mpeg1Muxer = function(options, logger, streamSessions) {
   
   stderr.on('line', line => {
     if (line.match(/\[(panic|fatal|error)\]/)) {
-      this.logger.error(line, this.cameraName, true);
+      this.logger.error(line, this.cameraName, '[Streams]');
     } else {
-      this.logger.debug(line, this.cameraName, true);
+      this.logger.debug(line, this.cameraName, '[Streams]');
     }
   });
   
   this.stream.on('exit', (code, signal) => {
   
     if (code === 1) {
-      this.logger.error(`RTSP stream exited with error! (${signal})`, this.cameraName, true);
+      this.logger.error(`RTSP stream exited with error! (${signal})`, this.cameraName, '[Streams]');
     } else {
-      this.logger.debug(`Stream Exit (expected)`, this.cameraName, true);
+      this.logger.debug(`Stream Exit (expected)`, this.cameraName, '[Streams]');
     }
   
     return this.emit('streamExit', {
