@@ -22,7 +22,7 @@ const Mpeg1Muxer = function(options, logger, streamSessions) {
   }     
   
   this.spawnOptions = [
-    ...this.options.url,
+    ...this.options.source.split(' '),
     '-f',
     'mpegts',
     '-codec:v',
@@ -36,8 +36,6 @@ const Mpeg1Muxer = function(options, logger, streamSessions) {
   this.stream = child_process.spawn(this.options.ffmpegPath, this.spawnOptions, {
     detached: false
   });
-  
-  this.logger.debug(`Streaming started - Stream from ${this.options.url[this.options.url.length-1]}`, this.cameraName, '[Streams]');
   
   this.stream.stdout.on('data', (data) => {
     return this.emit('mpeg1data', data);
