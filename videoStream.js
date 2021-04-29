@@ -49,14 +49,14 @@ VideoStream.prototype = {
       const server = https.createServer({
         cert: this.options.ssl.cert,
         key: this.options.ssl.key
-      }).listen(this.options.wsPort);
+      }).listen(this.options.socketPort);
           
       this.WebSocket = new ws.Server({ server: server, perMessageDeflate:false });
     
     } else {    
     
       this.WebSocket = new ws.Server({
-        port: this.options.wsPort,
+        port: this.options.socketPort,
         perMessageDeflate:false 
       });
 
@@ -70,8 +70,8 @@ VideoStream.prototype = {
       }
 
       let bind = typeof port === 'string'
-        ? 'Pipe ' + this.options.wsPort
-        : 'Socket port ' + this.options.wsPort;
+        ? 'Pipe ' + this.options.socketPort
+        : 'Socket port ' + this.options.socketPort;
 
       switch (error.code) {
         case 'EACCES':
@@ -88,7 +88,7 @@ VideoStream.prototype = {
     });
     
     this.WebSocket.on('listening', () => {
-      this.logger.debug(`Awaiting WebSocket connections on ${this.options.ssl ? 'wss' : 'ws'}://localhost:${this.options.wsPort}`, this.cameraName, '[Streams]');
+      this.logger.debug(`Awaiting WebSocket connections on ${this.options.ssl ? 'wss' : 'ws'}://localhost:${this.options.socketPort}`, this.cameraName, '[Streams]');
     });
     
     this.WebSocket.on('connection', (socket, request) => {
@@ -206,7 +206,7 @@ VideoStream.prototype = {
       width: this.options.width,
       height: this.options.height,
       ffmpegOptions: this.options.ffmpegOptions,
-      url: this.options.streamUrl,
+      source: this.options.source,
       ffmpegPath: !this.options.ffmpegPath
         ? 'ffmpeg' 
         : this.options.ffmpegPath,
