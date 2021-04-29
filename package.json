@@ -1,6 +1,6 @@
 {
   "name": "@seydx/node-rtsp-stream",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Node RTSP Module for homebridge-camera-ui",
   "main": "index.js",
   "repository": {
